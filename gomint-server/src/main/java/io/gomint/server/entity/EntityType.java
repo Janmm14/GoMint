@@ -94,11 +94,6 @@ public enum EntityType {
 	SNOW_GOLEM( 0x000315 ),
 
 	/**
-	 * Entity Type value for a witch.
-	 */
-	WITCH( 0x000B2D ),
-
-	/**
 	 * Entity Type value for a zombie.
 	 */
 	ZOMBIE( 0x30B20 ),
@@ -164,6 +159,11 @@ public enum EntityType {
 	ZOMBIE_VILLAGER( 0x30B2C ),
 
 	/**
+	 * Entity Type value for a witch.
+	 */
+	WITCH( 0x000B2D ),
+
+	/**
 	 * Entity Type value for a player.
 	 */
 	PLAYER( 0x00013F ),
@@ -222,6 +222,97 @@ public enum EntityType {
 	 * Entity Type value for a small fireball as thrown by blazes.
 	 */
 	SMALL_FIREBALL( 0x00005E );
+
+	/**
+	 * Gets an entity type given its ID. If found the correct entity type is returned,
+	 * otherwise null is returned.
+	 *
+	 * @param id The ID of the entity type to get
+	 * @return The entity type that corresponds to the given ID or null if not found
+	 */
+	public static EntityType getByID( int id ) {
+		int incremental = (id & 0xFF);
+		switch ( incremental ) {
+			case 0x0A:
+				return CHICKEN;
+			case 0x0B:
+				return COW;
+			case 0x0C:
+				return PIG;
+			case 0x0D:
+				return SHEEP;
+			case 0x0E:
+				return WOLF;
+			case 0x0F:
+				return VILLAGER;
+			case 0x10:
+				return MUSHROOM_COW;
+			case 0x11:
+				return SQUID;
+			case 0x12:
+				return RABBIT;
+			case 0x13:
+				return BAT;
+			case 0x14:
+				return IRON_GOLEM;
+			case 0x15:
+				return SNOW_GOLEM;
+			case 0x20:
+				return ZOMBIE;
+			case 0x21:
+				return CREEPER;
+			case 0x22:
+				return SKELETON;
+			case 0x23:
+				return SPIDER;
+			case 0x24:
+				return PIG_ZOMBIE;
+			case 0x25:
+				return SLIME;
+			case 0x26:
+				return ENDERMAN;
+			case 0x27:
+				return SILVERFISH;
+			case 0x28:
+				return CAVESPIDER;
+			case 0x29:
+				return GHAST;
+			case 0x2A:
+				return LAVA_SLIME;
+			case 0x2B:
+				return BLAZE;
+			case 0x2C:
+				return ZOMBIE_VILLAGER;
+			case 0x2D:
+				return WITCH;
+			case 0x3F:
+				return PLAYER;
+			case 0x4D:
+				return FISHING_HOOK;
+			case 0x50:
+				return ARROW;
+			case 0x51:
+				return SNOWBALL;
+			case 0x52:
+				return THROWN_EGG;
+			case 0x53:
+				return PAINTING;
+			case 0x54:
+				return MINECART_RIDEABLE;
+			case 0x55:
+				return LARGE_FIREBALL;
+			case 0x56:
+				return THROWN_POTION;
+			case 0x5A:
+				return BOAT_RIDEABLE;
+			case 0x5D:
+				return LIGHTNING;
+			case 0x5E:
+				return SMALL_FIREBALL;
+			default:
+				return null;
+		}
+	}
 
 	private final int id;
 
