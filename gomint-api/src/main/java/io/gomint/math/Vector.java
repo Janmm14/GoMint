@@ -24,21 +24,21 @@ import lombok.Setter;
 public class Vector implements Cloneable {
     public static final Vector ZERO = new Vector( 0, 0, 0 );
 
-    @Getter @Setter protected double x;
-    @Getter @Setter protected double y;
-    @Getter @Setter protected double z;
+    @Getter @Setter protected float x;
+    @Getter @Setter protected float y;
+    @Getter @Setter protected float z;
 
 	public Vector() {
 
 	}
 
-    public Vector( double x, double y, double z ) {
+    public Vector( float x, float y, float z ) {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-    public Vector add( double x, double y, double z ) {
+    public Vector add( float x, float y, float z ) {
         this.x += x;
         this.y += y;
         this.z += z;
@@ -46,7 +46,15 @@ public class Vector implements Cloneable {
         return this;
     }
 
-    public Vector subtract( double x, double y, double z ) {
+	public Vector add( Vector v ) {
+		this.x += v.x;
+		this.y += v.y;
+		this.z += v.z;
+
+		return this;
+	}
+
+    public Vector subtract( float x, float y, float z ) {
         this.x -= x;
         this.y -= y;
         this.z -= z;
@@ -54,7 +62,15 @@ public class Vector implements Cloneable {
         return this;
     }
 
-    public Vector multiply( double x, double y, double z ) {
+	public Vector subtract( Vector v ) {
+		this.x -= v.x;
+		this.y -= v.y;
+		this.z -= v.z;
+
+		return this;
+	}
+
+    public Vector multiply( float x, float y, float z ) {
         this.x *= x;
         this.y *= y;
         this.z *= z;
@@ -62,7 +78,15 @@ public class Vector implements Cloneable {
         return this;
     }
 
-    public Vector divide( double x, double y, double z ) {
+	public Vector multiply( Vector v ) {
+		this.x *= v.x;
+		this.y *= v.y;
+		this.z *= v.z;
+
+		return this;
+	}
+
+    public Vector divide( float x, float y, float z ) {
         this.x /= x;
         this.y /= y;
         this.z /= z;
@@ -70,7 +94,15 @@ public class Vector implements Cloneable {
         return this;
     }
 
-    public Vector scalar( float value ) {
+	public Vector divide( Vector v ) {
+		this.x /= v.x;
+		this.y /= v.y;
+		this.z /= v.z;
+
+		return this;
+	}
+
+    public Vector multiply( float value ) {
         this.x *= value;
         this.y *= value;
         this.z *= value;
