@@ -7,6 +7,7 @@
 
 package io.gomint.server.world;
 
+import io.gomint.math.Vector;
 import io.gomint.server.entity.EntityPlayer;
 import io.gomint.server.util.IntPair;
 
@@ -55,12 +56,14 @@ public class ChunkCache {
         synchronized ( this.cachedChunks ) {
             // Calculate the hashes which are used by players viewdistances
             LongSet viewDistanceSet = HashLongSets.newMutableSet();
-            for ( Map.Entry<EntityPlayer, ChunkAdapter> playerChunkAdapterEntry : this.world.getPlayers().entrySet() ) {
-                int viewDistance = playerChunkAdapterEntry.getKey().getViewDistance();
-                ChunkAdapter chunk = playerChunkAdapterEntry.getValue();
+            for ( EntityPlayer player : this.world.getPlayers() ) {
+                int          viewDistance = player.getViewDistance();
+                Vector       position     = player.getPosition();
+                int currentChunkX = CoordinateUtils.fromBlockToChunk( (int) position.getX() );
+                int currentChunkZ = CoordinateUtils.fromBlockToChunk( (int) position.getZ() );
 
-                for ( int x = chunk.getX() - viewDistance; x < chunk.getX() + viewDistance; x++ ) {
-                    for ( int z = chunk.getZ() - viewDistance; z < chunk.getZ() + viewDistance; z++ ) {
+                for ( int x = currentChunkX - viewDistance; x < currentChunkX + viewDistance; x++ ) {
+                    for ( int z = currentChunkZ - viewDistance; z < currentChunkZ + viewDistance; z++ ) {
                         viewDistanceSet.add( CoordinateUtils.toLong( x, z ) );
                     }
                 }

@@ -8,11 +8,13 @@
 package io.gomint.server.world;
 
 import io.gomint.jraknet.PacketBuffer;
+import io.gomint.jraknet.PacketReliability;
 import io.gomint.math.Location;
 import io.gomint.math.Vector;
 import io.gomint.server.GoMintServer;
 import io.gomint.server.async.Delegate;
 import io.gomint.server.async.Delegate2;
+import io.gomint.server.entity.Entity;
 import io.gomint.server.entity.EntityPlayer;
 import io.gomint.server.network.packet.Packet;
 import io.gomint.server.network.packet.PacketBatch;
@@ -24,6 +26,8 @@ import io.gomint.world.World;
 import lombok.Getter;
 import net.openhft.koloboke.collect.map.ObjObjMap;
 import net.openhft.koloboke.collect.map.hash.HashObjObjMaps;
+import net.openhft.koloboke.collect.set.ObjSet;
+import net.openhft.koloboke.collect.set.hash.HashObjSets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +35,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Queue;
@@ -69,19 +74,94 @@ public abstract class WorldAdapter implements World {
 	protected ChunkCache chunkCache;
 
     // Player handling
-    private ObjObjMap<EntityPlayer, ChunkAdapter> players;
+    private ObjSet<EntityPlayer> players;
+
+	// Entity Handling
+	private EntityManager entityManager;
 
 	protected WorldAdapter( GoMintServer server, File worldDir ) {
 		this.server = server;
 		this.logger = LoggerFactory.getLogger( "World-" + worldDir.getName() );
 		this.worldDir = worldDir;
-        this.players = HashObjObjMaps.newMutableMap();
+        this.players = HashObjSets.newMutableSet();
+		this.entityManager = new EntityManager( this );
         this.deflater = new Deflater( Deflater.DEFAULT_COMPRESSION );
         this.asyncChunkTasks = new LinkedBlockingQueue<>();
         this.chunkPackageTasks = new ConcurrentLinkedQueue<>();
         this.startAsyncWorker( server.getExecutorService() );
 	}
 	// CHECKSTYLE:ON
+
+	// ==================================== GENERAL ACCESSORS ==================================== //
+
+	@Override
+	public String getWorldName() {
+		return this.worldDir.getName();
+	}
+
+	@Override
+	public String getLevelName() {
+		return this.levelName;
+	}
+
+	@Override
+	public Location getSpawnLocation() {
+		return this.spawn;
+	}
+
+	@Override
+	public Block getBlockAt( Vector vector ) {
+		return null;
+	}
+
+	@Override
+	@SuppressWarnings( "unchecked" )
+	public <T> T getGamerule( Gamerule<T> gamerule ) {
+		return this.gamerules.containsKey( gamerule ) ? (T) this.gamerules.get( gamerule ) : null;
+	}
+
+	// ==================================== NETWORKING HELPERS ==================================== //
+
+	/**
+	 * Broadcasts the given packet to all players in this world.
+	 *
+	 * @param reliability The reliability to send the packet with
+	 * @param orderingChannel The ordering channel to send the packet on
+	 * @param packet The packet to send
+	 */
+	public void broadcast( PacketReliability reliability, int orderingChannel, Packet packet ) {
+		// Avoid duplicate arrays containing the very same data:
+		PacketBuffer buffer = new PacketBuffer( packet.estimateLength() == -1 ? 64 : packet.estimateLength() + 2 );
+		buffer.writeByte( (byte) 0x8E );
+		buffer.writeByte( packet.getId() );
+		packet.serialize( buffer );
+
+		// Avoid duplicate array copies:
+		byte[] payload;
+
+		if ( buffer.getRemaining() == 0 ) {
+			payload = buffer.getBuffer();
+		} else {
+			payload = new byte[ buffer.getPosition() - buffer.getBufferOffset() ];
+			System.arraycopy( buffer.getBuffer(), buffer.getBufferOffset(), payload, 0, buffer.getPosition() - buffer.getBufferOffset() );
+		}
+
+		// Send directly:
+		for ( EntityPlayer player : this.players ) {
+			player.getConnection().getConnection().send( reliability, orderingChannel, payload );
+		}
+	}
+
+	// ==================================== ENTITY MANAGEMENT ==================================== //
+
+	/**
+	 * Get the current view of players on this world.
+	 *
+	 * @return The Collection View of the Players currently on this world
+	 */
+	public Collection<EntityPlayer> getPlayers() {
+		return this.players;
+	}
 
     /**
      * Adds a new player to this world and schedules all world chunk packets required for spawning
@@ -90,6 +170,9 @@ public abstract class WorldAdapter implements World {
      * @param player The player entity to add to the world
      */
     public void addPlayer( EntityPlayer player ) {
+	    // Add player to player set:
+	    this.players.add( player );
+
         // Schedule sending spawn region chunks:
         final int minBlockX = (int) (this.spawn.getX() - 64);
         final int minBlockZ = (int) (this.spawn.getZ() - 64);
@@ -114,38 +197,45 @@ public abstract class WorldAdapter implements World {
      * @param player The player entity which should be removed from the world
      */
     public void removePlayer( EntityPlayer player ) {
-        ChunkAdapter chunkAdapter = this.players.remove( player );
+	    Vector position = player.getPosition();
+	    int currentChunkX = CoordinateUtils.fromBlockToChunk( (int) position.getX() );
+	    int currentChunkZ = CoordinateUtils.fromBlockToChunk( (int) position.getZ() );
+
+        ChunkAdapter chunkAdapter = this.getChunk( currentChunkX, currentChunkZ );
         if ( chunkAdapter != null ) {
             chunkAdapter.removePlayer( player );
         }
+
+	    this.players.remove( player );
     }
 
+	/**
+	 * Spawns the given entity at the specified position.
+	 *
+	 * @param entity The entity to spawn
+	 * @param positionX The x coordinate to spawn the entity at
+	 * @param positionY The y coordinate to spawn the entity at
+	 * @param positionZ The z coordinate to spawn the entity at
+	 */
+	public void spawnEntityAt( Entity entity, float positionX, float positionY, float positionZ ) {
+		this.entityManager.spawnEntityAt( entity, positionX, positionY, positionZ );
+	}
 
-    @Override
-    public String getWorldName() {
-        return this.worldDir.getName();
-    }
+	/**
+	 * Spawns the given entity at the specified position with the specified rotation.
+	 *
+	 * @param entity The entity to spawn
+	 * @param positionX The x coordinate to spawn the entity at
+	 * @param positionY The y coordinate to spawn the entity at
+	 * @param positionZ The z coordinate to spawn the entity at
+	 * @param yaw The yaw value of the entity ; will be applied to both the entity's body and head
+	 * @param pitch The pitch value of the entity
+	 */
+	public void spawnEntityAt( Entity entity, float positionX, float positionY, float positionZ, float yaw, float pitch ) {
+		this.entityManager.spawnEntityAt( entity, positionX, positionY, positionZ, yaw, pitch );
+	}
 
-    @Override
-    public String getLevelName() {
-        return this.levelName;
-    }
-
-    @Override
-    public Location getSpawnLocation() {
-        return this.spawn;
-    }
-
-    @Override
-    public Block getBlockAt( Vector vector ) {
-        return null;
-    }
-
-    @Override
-    @SuppressWarnings( "unchecked" )
-    public <T> T getGamerule( Gamerule<T> gamerule ) {
-        return this.gamerules.containsKey( gamerule ) ? (T) this.gamerules.get( gamerule ) : null;
-    }
+	// ==================================== UPDATING ==================================== //
 
 	/**
 	 * Ticks the world and updates what needs to be updated.
@@ -194,6 +284,8 @@ public abstract class WorldAdapter implements World {
         // ---------------------------------------
         // Perform regular updates:
     }
+
+	// ==================================== CHUNK MANAGEMENT ==================================== //
 
 	/**
 	 * Gets the chunk at the specified coordinates. If the chunk is currently not available
@@ -257,46 +349,26 @@ public abstract class WorldAdapter implements World {
      * Move a player to a new chunk. This is done so we know which player is in which chunk so we can unload unneeded
      * Chunks better and faster.
      *
+     * @param prevX The x-coordinate of the chunk the player was previously in
+     * @param prevZ The x-coordinate of the chunk the player was previously in
      * @param x The x-coordinate of the chunk
      * @param z The z-coordinate of the chunk
      * @param player The player which should be set into the chunk
      */
-    public void movePlayerToChunk( int x, int z, EntityPlayer player ) {
-        ChunkAdapter oldChunk = this.players.get( player );
+    public void movePlayerToChunk( int prevX, int prevZ, int x, int z, EntityPlayer player ) {
+        ChunkAdapter oldChunk = this.getChunk( prevX, prevZ );
         getOrLoadChunk( x, z, true, new Delegate<ChunkAdapter>() {
             @Override
             public void invoke( ChunkAdapter newChunk ) {
                 if ( oldChunk == null ) {
                     newChunk.addPlayer( player );
-                    WorldAdapter.this.players.put( player, newChunk );
-                }
-
-                if ( oldChunk != null && !oldChunk.equals( newChunk ) ) {
+                } else if ( !oldChunk.equals( newChunk ) ) {
                     oldChunk.removePlayer( player );
                     newChunk.addPlayer( player );
-                    WorldAdapter.this.players.put( player, newChunk );
                 }
             }
         } );
     }
-
-    /**
-     * Load a Chunk from the underlying implementation
-     *
-     * @param x         The x coordinate of the chunk we want to load
-     * @param z         The x coordinate of the chunk we want to load
-     * @param generate  A boolean which decides whether or not the chunk should be generated when not found
-     * @return The loaded or generated Chunk
-     */
-    protected abstract ChunkAdapter loadChunk( int x, int z, boolean generate );
-
-    /**
-     * Saves the given chunk to its respective region file. The respective region file
-     * is created automatically if it does not yet exist.
-     *
-     * @param chunk The chunk to be saved
-     */
-    protected abstract void saveChunk( ChunkAdapter chunk );
 
     /**
      * Saves the given chunk to its region file asynchronously.
@@ -307,6 +379,53 @@ public abstract class WorldAdapter implements World {
         AsyncChunkSaveTask task = new AsyncChunkSaveTask( chunk );
         this.asyncChunkTasks.add( task );
     }
+
+	/**
+	 * Load a Chunk from the underlying implementation
+	 *
+	 * @param x         The x coordinate of the chunk we want to load
+	 * @param z         The x coordinate of the chunk we want to load
+	 * @param generate  A boolean which decides whether or not the chunk should be generated when not found
+	 * @return The loaded or generated Chunk
+	 */
+	protected abstract ChunkAdapter loadChunk( int x, int z, boolean generate );
+
+	/**
+	 * Saves the given chunk to its respective region file. The respective region file
+	 * is created automatically if it does not yet exist.
+	 *
+	 * @param chunk The chunk to be saved
+	 */
+	protected abstract void saveChunk( ChunkAdapter chunk );
+
+	/**
+	 * Prepares the region surrounding the world's spawn point.
+	 *
+	 * @throws IOException Throws in case the spawn region could not be loaded nor generated
+	 */
+	protected void prepareSpawnRegion() throws IOException {
+		final int spawnRadius = this.server.getServerConfig().getAmountOfChunksForSpawnArea() * 16;
+		if ( spawnRadius == 0 ) return;
+
+		final int minBlockX = (int) (this.spawn.getX() - spawnRadius);
+		final int minBlockZ = (int) (this.spawn.getZ() - spawnRadius);
+		final int maxBlockX = (int) (this.spawn.getX() + spawnRadius);
+		final int maxBlockZ = (int) (this.spawn.getZ() + spawnRadius);
+
+		final int minChunkX = CoordinateUtils.fromBlockToChunk( minBlockX );
+		final int minChunkZ = CoordinateUtils.fromBlockToChunk( minBlockZ );
+		final int maxChunkX = CoordinateUtils.fromBlockToChunk( maxBlockX );
+		final int maxChunkZ = CoordinateUtils.fromBlockToChunk( maxBlockZ );
+
+		for ( int i = minChunkZ; i <= maxChunkZ; ++i ) {
+			for ( int j = minChunkX; j <= maxChunkX; ++j ) {
+				ChunkAdapter chunk = this.loadChunk( j, i, true );
+				if ( chunk == null ) {
+					throw new IOException( "Failed to load / generate chunk surrounding spawn region" );
+				}
+			}
+		}
+	}
 
     /**
      * Notifies the world that the given chunk was told to package itself. This will effectively
@@ -371,6 +490,8 @@ public abstract class WorldAdapter implements World {
         callback.invoke( CoordinateUtils.toLong( chunk.getX(), chunk.getZ() ), batch );
     }
 
+	// ==================================== WORKER THREAD ==================================== //
+
     /**
      * Starts the asynchronous worker thread used by the world to perform I/O operations for chunks.
      */
@@ -420,44 +541,6 @@ public abstract class WorldAdapter implements World {
 
             }
         }
-    }
-
-    /**
-     * Prepares the region surrounding the world's spawn point.
-     *
-     * @throws IOException Throws in case the spawn region could not be loaded nor generated
-     */
-    protected void prepareSpawnRegion() throws IOException {
-        final int spawnRadius = this.server.getServerConfig().getAmountOfChunksForSpawnArea() * 16;
-        if ( spawnRadius == 0 ) return;
-
-        final int minBlockX = (int) (this.spawn.getX() - spawnRadius);
-        final int minBlockZ = (int) (this.spawn.getZ() - spawnRadius);
-        final int maxBlockX = (int) (this.spawn.getX() + spawnRadius);
-        final int maxBlockZ = (int) (this.spawn.getZ() + spawnRadius);
-
-        final int minChunkX = CoordinateUtils.fromBlockToChunk( minBlockX );
-        final int minChunkZ = CoordinateUtils.fromBlockToChunk( minBlockZ );
-        final int maxChunkX = CoordinateUtils.fromBlockToChunk( maxBlockX );
-        final int maxChunkZ = CoordinateUtils.fromBlockToChunk( maxBlockZ );
-
-        for ( int i = minChunkZ; i <= maxChunkZ; ++i ) {
-            for ( int j = minChunkX; j <= maxChunkX; ++j ) {
-                ChunkAdapter chunk = this.loadChunk( j, i, true );
-                if ( chunk == null ) {
-                    throw new IOException( "Failed to load / generate chunk surrounding spawn region" );
-                }
-            }
-        }
-    }
-
-    /**
-     * Get the current view of players on this world.
-     *
-     * @return The Collection View of the Players currently on this world
-     */
-    public Map<EntityPlayer,ChunkAdapter> getPlayers() {
-        return players;
     }
 
 }

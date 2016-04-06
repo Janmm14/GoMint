@@ -11,6 +11,8 @@ import io.gomint.server.network.packet.Packet;
 import io.gomint.server.network.packet.PacketA8;
 import io.gomint.server.network.packet.PacketB9;
 import io.gomint.server.network.packet.PacketBatch;
+import io.gomint.server.network.packet.PacketDespawnEntity;
+import io.gomint.server.network.packet.PacketSpawnEntity;
 import io.gomint.server.network.packet.PacketText;
 import io.gomint.server.network.packet.PacketCraftingRecipes;
 import io.gomint.server.network.packet.PacketEntityMetadata;
@@ -38,6 +40,8 @@ public final class Protocol {
 	public static final byte PACKET_TEXT                 = (byte) 0x93;
 	public static final byte PACKET_WORLD_TIME           = (byte) 0x94;
 	public static final byte PACKET_WORLD_INITIALIZATION = (byte) 0x95;
+	public static final byte PACKET_SPAWN_ENTITY         = (byte) 0x98;
+	public static final byte PACKET_DESPAWN_ENTITY       = (byte) 0x99;
 	public static final byte PACKET_ENTITY_MOVEMENT      = (byte) 0x9C;
 	public static final byte PACKET_MOVE_PLAYER          = (byte) 0x9D;
 	public static final byte PACKET_A8                   = (byte) 0xA8;
@@ -80,6 +84,12 @@ public final class Protocol {
 
 			case PACKET_WORLD_INITIALIZATION:
 				return new PacketWorldInitialization();
+
+			case PACKET_SPAWN_ENTITY:
+				return new PacketSpawnEntity();
+
+			case PACKET_DESPAWN_ENTITY:
+				return new PacketDespawnEntity();
 
 			case PACKET_ENTITY_MOVEMENT:
 				return new PacketEntityMovement();

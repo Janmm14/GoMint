@@ -11,6 +11,7 @@ import io.gomint.jraknet.Connection;
 import io.gomint.jraknet.PacketBuffer;
 import io.gomint.jraknet.PacketReliability;
 import io.gomint.math.Location;
+import io.gomint.math.Vector;
 import io.gomint.server.async.Delegate;
 import io.gomint.server.entity.EntityPlayer;
 import io.gomint.server.network.packet.*;
@@ -65,6 +66,8 @@ public class PlayerConnection {
     // World data
     private LongSet playerChunks;
     private LongSet currentlySendingPlayerChunks;
+    private int previousChunkX;
+    private int previousChunkZ;
 
     /**
      * Constructs a new player connection.
@@ -195,7 +198,7 @@ public class PlayerConnection {
                 int spawnZChunk = CoordinateUtils.fromBlockToChunk( (int) this.entity.getLocation().getZ() );
 
                 WorldAdapter worldAdapter = (WorldAdapter) this.entity.getWorld();
-                worldAdapter.movePlayerToChunk( spawnXChunk, spawnZChunk, this.entity );
+                worldAdapter.movePlayerToChunk( Integer.MAX_VALUE, Integer.MAX_VALUE, spawnXChunk, spawnZChunk, this.entity );
 
                 PacketConfirmChunkRadius packetConfirmChunkRadius = new PacketConfirmChunkRadius();
                 packetConfirmChunkRadius.setChunkRadius( this.entity.getViewDistance() );
@@ -357,14 +360,19 @@ public class PlayerConnection {
     private void handleMovePacket( PacketMovePlayer packet ) {
         // TODO: Send some sort of movement event
 
-        if ( (int) this.entity.getLocation().getX() != (int) packet.getX() ||
-                (int) this.entity.getLocation().getZ() != (int) packet.getZ() ) {
+	    Vector currentPosition = this.entity.getPosition();
+	    int previousBlockX = (int) currentPosition.getX();
+	    int previousBlockZ = (int) currentPosition.getZ();
+
+	    this.previousChunkX = CoordinateUtils.fromBlockToChunk( previousBlockX );
+	    this.previousChunkZ = CoordinateUtils.fromBlockToChunk( previousBlockZ );
+
+	    this.entity.setPosition( packet.getX(), packet.getY(), packet.getZ() );
+
+        if ( previousBlockX != (int) packet.getX() ||
+             previousBlockZ != (int) packet.getZ() ) {
             this.checkForNewChunks();
         }
-
-        this.entity.getLocation().setX( packet.getX() );
-        this.entity.getLocation().setY( packet.getY() );
-        this.entity.getLocation().setZ( packet.getZ() );
     }
 
     private void checkForNewChunks() {
@@ -387,7 +395,7 @@ public class PlayerConnection {
         }
 
         // Move the player to this chunk
-        worldAdapter.movePlayerToChunk( currentXChunk, currentZChunk, this.entity );
+        worldAdapter.movePlayerToChunk( this.previousChunkX, this.previousChunkZ, currentXChunk, currentZChunk, this.entity );
 
         // Check for unloading chunks
         synchronized ( this.playerChunks ) {
@@ -450,9 +458,9 @@ public class PlayerConnection {
     private void sendMovePlayer( Location location ) {
         PacketMovePlayer move = new PacketMovePlayer();
         move.setEntityId( 0 );                      // All packets referencing the local player have entity ID 0
-        move.setX( (float) location.getX() );
-        move.setY( (float) location.getY() );
-        move.setZ( (float) location.getZ() );
+        move.setX( location.getX() );
+        move.setY( location.getY() );
+        move.setZ( location.getZ() );
         move.setYaw( 0.0F );
         move.setPitch( 0.0F );
         move.setTeleport( true );
@@ -490,9 +498,9 @@ public class PlayerConnection {
         init.setSpawnX( (int) world.getSpawnLocation().getX() );
         init.setSpawnY( (int) world.getSpawnLocation().getY() );
         init.setSpawnZ( (int) world.getSpawnLocation().getZ() );
-        init.setX( (float) world.getSpawnLocation().getX() );
-        init.setY( (float) world.getSpawnLocation().getY() );
-        init.setZ( (float) world.getSpawnLocation().getZ() );
+        init.setX( world.getSpawnLocation().getX() );
+        init.setY( world.getSpawnLocation().getY() );
+        init.setZ( world.getSpawnLocation().getZ() );
         init.setAllowCheats( true );
         this.send( init );
     }
