@@ -32,7 +32,9 @@ public abstract class Entity {
      * Type of the entity
      */
 	protected final EntityType   type;
-    @Getter private Location location;
+
+
+    private Location location;
 
     /**
      * Construct a new Entity

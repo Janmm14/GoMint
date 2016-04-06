@@ -12,12 +12,14 @@ import lombok.Setter;
 
 /**
  * <p>
- * An immutable class to represent a x, y and z coordinate
+ * A mutable class representing a triple of float values resembling
+ * the x, y and z coordinates of a point respectively.
  * </p>
  *
  * @author Digot
  * @author geNAZt
- * @version 1.1
+ * @author BlackyPaw
+ * @version 1.2
  */
 public class Vector implements Cloneable {
     public static final Vector ZERO = new Vector( 0, 0, 0 );
@@ -25,6 +27,10 @@ public class Vector implements Cloneable {
     @Getter @Setter protected double x;
     @Getter @Setter protected double y;
     @Getter @Setter protected double z;
+
+	public Vector() {
+
+	}
 
     public Vector( double x, double y, double z ) {
         this.x = x;
@@ -73,7 +79,20 @@ public class Vector implements Cloneable {
     }
 
     @Override
+    public String toString() {
+        return String.format( "[x=%.3f, y=%.3f, z=%.3f]", this.x, this.y, this.z );
+    }
+
+    @Override
     public Vector clone() {
-        return new Vector( x, y, z );
+        try {
+            Vector vector = (Vector) super.clone();
+            vector.x = this.x;
+            vector.y = this.y;
+            vector.z = this.z;
+            return vector;
+        } catch ( CloneNotSupportedException e ) {
+            throw new AssertionError( "Failed to clone vector!" );
+        }
     }
 }
