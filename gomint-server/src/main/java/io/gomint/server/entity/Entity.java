@@ -78,7 +78,7 @@ public abstract class Entity {
 	 *
 	 * @return The world of this entity
 	 */
-	public World getWorld() {
+	public WorldAdapter getWorld() {
 		return this.world;
 	}
 

@@ -24,8 +24,6 @@ import io.gomint.world.Gamerule;
 import io.gomint.world.World;
 
 import lombok.Getter;
-import net.openhft.koloboke.collect.map.ObjObjMap;
-import net.openhft.koloboke.collect.map.hash.HashObjObjMaps;
 import net.openhft.koloboke.collect.set.ObjSet;
 import net.openhft.koloboke.collect.set.hash.HashObjSets;
 import org.slf4j.Logger;
@@ -235,6 +233,25 @@ public abstract class WorldAdapter implements World {
 		this.entityManager.spawnEntityAt( entity, positionX, positionY, positionZ, yaw, pitch );
 	}
 
+	/**
+	 * Finds an entity by its ID. If the entity is not found null is returned.
+	 *
+	 * @param entityId The unique ID of the entity
+	 * @return The entity or null if not found
+	 */
+	public Entity findEntity( long entityId ) {
+		return this.entityManager.findEntity( entityId );
+	}
+
+	/**
+	 * Despawns an entity given its id.
+	 *
+	 * @param entityId The ID of the entity to despawn
+	 */
+	public void despawnEntity( long entityId ) {
+		this.entityManager.despawnEntity( entityId );
+	}
+
 	// ==================================== UPDATING ==================================== //
 
 	/**
@@ -281,7 +298,7 @@ public abstract class WorldAdapter implements World {
             }
         }
 
-        // ---------------------------------------
+         // ---------------------------------------
         // Perform regular updates:
     }
 

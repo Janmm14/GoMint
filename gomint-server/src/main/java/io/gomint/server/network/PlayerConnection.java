@@ -13,6 +13,7 @@ import io.gomint.jraknet.PacketReliability;
 import io.gomint.math.Location;
 import io.gomint.math.Vector;
 import io.gomint.server.async.Delegate;
+import io.gomint.server.entity.EntityCow;
 import io.gomint.server.entity.EntityPlayer;
 import io.gomint.server.network.packet.*;
 import io.gomint.server.scheduler.SyncScheduledTask;
@@ -341,6 +342,12 @@ public class PlayerConnection {
 
 		// TODO: Trigger chat event here
 		this.networkManager.broadcast( PacketReliability.RELIABLE, 0, packet );
+
+        if ( packet.getMessage().contains( "spawn" ) ) {
+	        Vector position = this.entity.getPosition();
+	        WorldAdapter world = this.entity.getWorld();
+	        world.spawnEntityAt( new EntityCow( world ), position.getX(), position.getY(), position.getZ() );
+        }
 	}
 
     private void handleSetChunkRadius( PacketSetChunkRadius packet ) {

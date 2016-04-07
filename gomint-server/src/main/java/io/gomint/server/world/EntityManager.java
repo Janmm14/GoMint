@@ -9,6 +9,7 @@ package io.gomint.server.world;
 
 import io.gomint.jraknet.PacketReliability;
 import io.gomint.server.entity.Entity;
+import io.gomint.server.network.packet.PacketDespawnEntity;
 import io.gomint.server.network.packet.PacketSpawnEntity;
 import net.openhft.koloboke.collect.map.LongObjMap;
 import net.openhft.koloboke.collect.map.hash.HashLongObjMaps;
@@ -28,6 +29,16 @@ public class EntityManager {
 	public EntityManager( WorldAdapter world ) {
 		this.world = world;
 		this.entitiesById = HashLongObjMaps.newMutableMap();
+	}
+
+	/**
+	 * Gets an entity given its unique ID.
+	 *
+	 * @param entityId The entity's unique ID
+	 * @return The entity if found or null otherwise
+	 */
+	public Entity findEntity( long entityId ) {
+		return this.entitiesById.get( entityId );
 	}
 
 	/**
@@ -73,6 +84,22 @@ public class EntityManager {
 		packet.setHeadYaw( yaw );
 		packet.setMetadata( entity.getMetadata() );
 		this.world.broadcast( PacketReliability.RELIABLE, 0, packet );
+	}
+
+	/**
+	 * Despawns an entity given its unique ID.
+	 *
+	 * @param entityId The unique ID of the entity
+	 */
+	public void despawnEntity( long entityId ) {
+		if ( this.entitiesById.containsKey( entityId ) ) {
+			this.entitiesById.remove( entityId );
+
+			// Broadcast despawn entity packet:
+			PacketDespawnEntity packet = new PacketDespawnEntity();
+			packet.setEntityId( entityId );
+			this.world.broadcast( PacketReliability.RELIABLE, 0, packet );
+		}
 	}
 
 }

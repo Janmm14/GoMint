@@ -153,7 +153,7 @@ public class GoMintServer implements GoMint {
         this.syncTaskManager.addTask( new SyncScheduledTask( new Runnable() {
             @Override
             public void run() {
-                logger.debug( "Tick!" );
+	            
             }
         }, 1, 1, TimeUnit.SECONDS ) );
 
