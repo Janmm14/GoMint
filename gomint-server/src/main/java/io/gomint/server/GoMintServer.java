@@ -149,14 +149,6 @@ public class GoMintServer implements GoMint {
 		// ------------------------------------ //
 		// Main Loop
 		// ------------------------------------ //
-
-        this.syncTaskManager.addTask( new SyncScheduledTask( new Runnable() {
-            @Override
-            public void run() {
-	            
-            }
-        }, 1, 1, TimeUnit.SECONDS ) );
-
 		// Tick loop
         float lastTickTime = Float.MIN_NORMAL;
         Condition tickCondition = tickLock.newCondition();

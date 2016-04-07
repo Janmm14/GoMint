@@ -34,7 +34,7 @@ public class SyncScheduledTask implements Task, Runnable {
     public SyncScheduledTask( Runnable task, long delay, long period, TimeUnit unit ) {
         this.task = task;
         this.period = ( period >= 0) ? unit.toMillis( period ) : -1;
-        this.nextExecution = ( delay >= 0 ) ? System.currentTimeMillis() + unit.toMillis( period ) : -1;
+        this.nextExecution = ( delay >= 0 ) ? System.currentTimeMillis() + unit.toMillis( delay ) : -1;
     }
 
     @Override

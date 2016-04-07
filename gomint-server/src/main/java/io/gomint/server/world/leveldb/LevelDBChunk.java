@@ -57,7 +57,7 @@ public class LevelDBChunk extends ChunkAdapter {
 		try ( ByteArrayInputStream inputStream = new ByteArrayInputStream( entityData ) ) {
 			while ( inputStream.available() > 0 ) {
 				NBTTagCompound nbtTagCompound = NBTTagCompound.readFrom( inputStream, false, ByteOrder.LITTLE_ENDIAN );
-				DumpUtil.dumpNBTCompund( nbtTagCompound );
+				// DumpUtil.dumpNBTCompund( nbtTagCompound );
 			}
 		} catch ( IOException e ) {
 			e.printStackTrace();
@@ -72,16 +72,16 @@ public class LevelDBChunk extends ChunkAdapter {
 	            if ( tileEntity != null ) {
 					tileEntities.add( tileEntity );
 		            // System.out.println( "TileEntity @ " + tileEntity.getLocation() );
-	            } /* else {
+	            } else {
 		            System.out.println( "Found new TileEntity: \n");
-		            dumpNBTTag( nbtTagCompound, 0 );
+		            DumpUtil.dumpNBTCompund( nbtTagCompound );
 		            System.out.println( "-----------------");
-	            } */
+	            }
             }
         } catch ( IOException e ) {
             e.printStackTrace();
         }
-	}
+    }
 
     private void loadChunk( byte[] chunkData ) {
         // Wrap data and read blocks

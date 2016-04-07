@@ -29,7 +29,7 @@ public abstract class TileEntity {
      * @param tagCompound   The TagCompound which should be used to read data from
      * @param world         The world in which this TileEntity resides
      */
-    public TileEntity( NBTTagCompound tagCompound, WorldAdapter world ) {
+    TileEntity( NBTTagCompound tagCompound, WorldAdapter world ) {
 	    this.location = new Location(
 			    world,
 			    tagCompound.getInteger( "x", 0 ),
@@ -42,8 +42,9 @@ public abstract class TileEntity {
      * Tick this tileEntity
      *
      * @param currentMillis The amount of millis to save some CPU
+     * @param dF            The percentage of the second which was calculated in the last tick
      */
-    public abstract void tick( long currentMillis );
+    public abstract void update( long currentMillis, float dF );
 
     /**
      * Save this TileEntity back to an compound

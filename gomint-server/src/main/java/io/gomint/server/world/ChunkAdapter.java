@@ -16,6 +16,7 @@ import io.gomint.server.network.packet.Packet;
 import io.gomint.server.network.packet.PacketBatch;
 import io.gomint.server.network.packet.PacketWorldChunk;
 import io.gomint.server.util.Color;
+import io.gomint.server.util.DumpUtil;
 import io.gomint.taglib.NBTTagCompound;
 import io.gomint.world.Biome;
 import io.gomint.world.Block;
@@ -506,10 +507,7 @@ public abstract class ChunkAdapter implements Chunk {
 				}
 			}
 
-			buffer.writeInt( byteArrayOutputStream.size() );
 			buffer.writeBytes( byteArrayOutputStream.toByteArray() );
-		} else {
-			buffer.writeInt( 0 );
 		}
 
 		PacketWorldChunk packet = new PacketWorldChunk();

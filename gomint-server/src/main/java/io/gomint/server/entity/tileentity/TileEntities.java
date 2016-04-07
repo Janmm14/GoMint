@@ -22,7 +22,12 @@ public enum TileEntities {
     /**
      * Represents a sign. This TileEntity holds 4 lines of strings to be displayed on a piece of wood
      */
-    SIGN( "Sign", SignTileEntity.class );
+    SIGN( "Sign", SignTileEntity.class ),
+
+    /**
+     * Represents a chest. This TileEntity holds a inventory which can hold up to 27 itemstacks
+     */
+    CHEST( "Chest", ChestTileEntity.class );
 
     private final String nbtID;
     private MethodHandle tileEntityConstructor;

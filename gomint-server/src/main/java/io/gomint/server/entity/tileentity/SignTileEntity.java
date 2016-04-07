@@ -17,7 +17,7 @@ import java.util.List;
  * @author geNAZt
  * @version 1.0
  */
-public class SignTileEntity extends TileEntity {
+class SignTileEntity extends TileEntity {
 
     private List<String> lines = new ArrayList<>( 4 );
 
@@ -37,7 +37,7 @@ public class SignTileEntity extends TileEntity {
     }
 
     @Override
-    public void tick( long currentMillis ) {
+    public void update( long currentMillis, float dF ) {
 
     }
 
@@ -45,6 +45,7 @@ public class SignTileEntity extends TileEntity {
     public void toCompund( NBTTagCompound compound ) {
         super.toCompund( compound );
 
+        compound.addValue( "id", "Sign" );
         compound.addValue( "Text1", this.lines.get( 0 ) );
         compound.addValue( "Text2", this.lines.get( 1 ) );
         compound.addValue( "Text3", this.lines.get( 2 ) );
