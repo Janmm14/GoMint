@@ -184,8 +184,6 @@ class AnvilChunk extends ChunkAdapter {
                                 default:
                                     break;
                             }
-                        } else {
-                            System.out.println( path );
                         }
                 }
             }
